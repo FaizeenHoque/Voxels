@@ -1,18 +1,17 @@
 mod app;
 
 use std::sync::Arc;
-use wgpu::wgc::command::CommandEncoderError::RenderPass;
 use winit::{dpi::PhysicalPosition, window::Window};
 
 use crate::app::App;
 
 pub struct State {
+    window: Arc<Window>,
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
-    window: Arc<Window>,
 
     clear_color: wgpu::Color,
 }
@@ -22,7 +21,11 @@ impl State {
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::PRIMARY,
+            backends: if cfg!(target_os = "windows") {
+                wgpu::Backends::DX12
+            } else {
+                wgpu::Backends::PRIMARY
+            },
             flags: Default::default(),
             memory_budget_thresholds: Default::default(),
             backend_options: Default::default(),
@@ -72,12 +75,12 @@ impl State {
         };
 
         Ok(Self {
+            window,
             surface,
             device,
             queue,
             config,
             is_surface_configured: false,
-            window,
 
             clear_color: wgpu::Color {
                 r: 0.0104,
@@ -129,7 +132,7 @@ impl State {
 
         {
             // Scoped: render pass borrows `encoder` mutably, must drop before `finish()`.
-            let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
