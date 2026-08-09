@@ -5,7 +5,7 @@ use winit::{
     event::{KeyEvent, WindowEvent},
     event_loop::EventLoop,
     keyboard::{KeyCode, PhysicalKey},
-    window::Window,
+    window::{Window, WindowButtons},
 };
 
 use crate::State;
@@ -35,9 +35,13 @@ impl ApplicationHandler<()> for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         #[allow(unused_mut)]
         let mut window_attributes = Window::default_attributes();
+        window_attributes = window_attributes
+            .with_inner_size(winit::dpi::LogicalSize::new(1200.0, 600.0))
+            .with_enabled_buttons(WindowButtons::CLOSE | WindowButtons::MINIMIZE);
 
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
         window.set_title("Voxels - A minecraft clone by @Fynr1x");
+        window.set_resizable(false);
 
         self.state = Some(pollster::block_on(State::new(window)).unwrap());
     }
