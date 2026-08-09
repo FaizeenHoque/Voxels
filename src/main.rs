@@ -1,7 +1,8 @@
 mod app;
 
 use std::sync::Arc;
-use winit::window::Window;
+use wgpu::wgc::command::CommandEncoderError::RenderPass;
+use winit::{dpi::PhysicalPosition, window::Window};
 
 use crate::app::App;
 
@@ -12,6 +13,8 @@ pub struct State {
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
     window: Arc<Window>,
+
+    clear_color: wgpu::Color,
 }
 
 impl State {
@@ -75,6 +78,13 @@ impl State {
             config,
             is_surface_configured: false,
             window,
+
+            clear_color: wgpu::Color {
+                r: 0.0104,
+                g: 0.0104,
+                b: 0.0104,
+                a: 1.0,
+            },
         })
     }
 
@@ -86,11 +96,6 @@ impl State {
             self.is_surface_configured = true;
         }
     }
-
-    pub fn update(&mut self) {
-        // TODO: scene/camera updates
-    }
-
     pub fn render(&mut self) -> anyhow::Result<()> {
         self.window.request_redraw();
 
@@ -123,19 +128,14 @@ impl State {
 
         {
             // Scoped: render pass borrows `encoder` mutably, must drop before `finish()`.
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
                     depth_slice: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0104,
-                            g: 0.0104,
-                            b: 0.0104,
-                            a: 1.0,
-                        }),
+                        load: wgpu::LoadOp::Clear(self.clear_color),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -150,6 +150,22 @@ impl State {
         self.queue.present(output);
 
         Ok(())
+    }
+
+    pub fn update(&mut self) {
+        // TODO: scene/camera updates
+    }
+
+    pub fn handle_mouse_moved(&mut self, position: PhysicalPosition<f64>) {
+        let r = position.x / self.config.width as f64;
+        let g = position.y / self.config.height as f64;
+
+        self.clear_color = wgpu::Color {
+            r,
+            g,
+            b: 0.5,
+            a: 1.0,
+        };
     }
 }
 

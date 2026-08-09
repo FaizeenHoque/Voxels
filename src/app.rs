@@ -77,6 +77,12 @@ impl ApplicationHandler<()> for App {
                 (KeyCode::Escape, true) => event_loop.exit(),
                 _ => {}
             },
+            WindowEvent::CursorMoved {
+                device_id: _,
+                position,
+            } => {
+                State::handle_mouse_moved(state, position);
+            }
             _ => {}
         }
     }
