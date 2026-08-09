@@ -20,10 +20,7 @@ impl App {
     }
 
     pub fn run() -> anyhow::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            env_logger::init();
-        }
+        env_logger::init();
 
         let event_loop = EventLoop::new()?;
         let mut app = App::new();
