@@ -37,6 +37,7 @@ impl ApplicationHandler<()> for App {
         let mut window_attributes = Window::default_attributes();
 
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
+        window.set_title("Voxels - A minecraft clone by @Fynr1x");
 
         self.state = Some(pollster::block_on(State::new(window)).unwrap());
     }

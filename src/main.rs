@@ -96,6 +96,7 @@ impl State {
             self.is_surface_configured = true;
         }
     }
+
     pub fn render(&mut self) -> anyhow::Result<()> {
         self.window.request_redraw();
 
