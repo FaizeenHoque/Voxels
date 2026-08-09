@@ -7,6 +7,7 @@ edition = "2024"
 anyhow = "1.0.104"
 env_logger = "0.11.11"
 glam = "0.33.3"
+log = "0.4.33"
 pollster = "1.0.1"
 wgpu = "30.0.0"
 winit = { version = "0.30", features = ["wayland"] }
