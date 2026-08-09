@@ -6,7 +6,9 @@ use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use winit::platform::web::EventLoopExtWebSys;
-use winit::{event_loop, window::Window};
+use winit::window::Window;
+
+use crate::app::App;
 
 pub struct State {
     window: Arc<Window>,
@@ -25,5 +27,8 @@ impl State {
 }
 
 fn main() {
-    println!("Hello, world!");
+    if let Err(err) = App::run() {
+        eprintln!("failed to start app: {err}");
+        std::process::exit(1);
+    }
 }
