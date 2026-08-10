@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
+use cgmath::Vector3;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
 use crate::{
     camera::CameraUniform,
-    graphics::{INDICES, VERTICES, Vertex},
+    graphics::{Block, CUBEINDS, CUBEVERTS, PRISMINDS, PRISMVERTS, Vertex},
 };
 
 pub struct Renderer {
@@ -17,9 +18,9 @@ pub struct Renderer {
     is_surface_configured: bool,
     render_pipeline: wgpu::RenderPipeline,
     clear_color: wgpu::Color,
-    vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
-    num_indices: u32,
+    // vertex_buffer: wgpu::Buffer,
+    // index_buffer: wgpu::Buffer,
+    // num_indices: u32,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
 }
@@ -163,17 +164,16 @@ impl Renderer {
             cache: None,
         });
 
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(VERTICES),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(INDICES),
-            usage: wgpu::BufferUsages::INDEX,
-        });
+        // let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        //     label: Some("Vertex Buffer"),
+        //     contents: bytemuck::cast_slice(CUBEVERTS),
+        //     usage: wgpu::BufferUsages::VERTEX,
+        // });
+        // let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        //     label: Some("Index Buffer"),
+        //     contents: bytemuck::cast_slice(CUBEINDS),
+        //     usage: wgpu::BufferUsages::INDEX,
+        // });
 
         Ok(Self {
             window,
@@ -189,9 +189,9 @@ impl Renderer {
                 b: 0.0104,
                 a: 1.0,
             },
-            vertex_buffer,
-            index_buffer,
-            num_indices: INDICES.len() as u32,
+            // vertex_buffer,
+            // index_buffer,
+            // num_indices: PRISMINDS.len() as u32,
             camera_buffer,
             camera_bind_group,
         })
@@ -204,14 +204,6 @@ impl Renderer {
             self.surface.configure(&self.device, &self.config);
             self.is_surface_configured = true;
         }
-    }
-
-    pub fn update_camera_uniform(&self, camera_uniform: &CameraUniform) {
-        self.queue.write_buffer(
-            &self.camera_buffer,
-            0,
-            bytemuck::cast_slice(&[*camera_uniform]),
-        );
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
@@ -262,16 +254,39 @@ impl Renderer {
                 multiview_mask: None,
             });
 
+            let vertex_buffer = self
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Vertex Buffer"),
+                    contents: bytemuck::cast_slice(CUBEVERTS),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+            let index_buffer = self
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Index Buffer"),
+                    contents: bytemuck::cast_slice(CUBEINDS),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+
+            let mut grass = Block::new("grass".to_string(), vertex_buffer, index_buffer);
+
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
+            grass.draw(render_pass, Vector3::new(0, 0, 0));
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
         self.queue.present(output);
 
         Ok(())
+    }
+
+    pub fn update_camera_uniform(&self, camera_uniform: &CameraUniform) {
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[*camera_uniform]),
+        );
     }
 }
