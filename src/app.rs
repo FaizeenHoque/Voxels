@@ -41,7 +41,7 @@ impl ApplicationHandler<()> for App {
 
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
         window.set_title("Voxels - A minecraft clone by @Fynr1x");
-        window.set_resizable(false);
+        window.set_resizable(true);
 
         self.state = Some(pollster::block_on(State::new(window)).unwrap());
     }
