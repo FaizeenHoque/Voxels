@@ -8,7 +8,7 @@ use winit::{
     window::{Window, WindowButtons},
 };
 
-use crate::state::State;
+use crate::graphics::State;
 
 pub struct App {
     state: Option<State>,

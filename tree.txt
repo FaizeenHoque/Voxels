@@ -1,0 +1,15 @@
+.
+├── Cargo.lock
+├── Cargo.toml
+├── src
+│   ├── app.rs
+│   ├── camera.rs
+│   ├── main.rs
+│   ├── mesh.rs
+│   ├── renderer.rs
+│   ├── shader.wgsl
+│   ├── state.rs
+│   └── vertex.rs
+└── tree.txt
+
+2 directories, 11 files

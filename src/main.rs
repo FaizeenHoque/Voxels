@@ -1,10 +1,8 @@
+use crate::app::App;
+
 mod app;
 mod camera;
-mod mesh;
-mod state;
-mod vertex;
-
-use crate::app::App;
+mod graphics;
 
 fn main() {
     if let Err(err) = App::run() {

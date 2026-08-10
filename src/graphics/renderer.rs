@@ -1,14 +1,14 @@
 use std::sync::Arc;
+
 use wgpu::util::DeviceExt;
-use winit::{dpi::PhysicalPosition, window::Window};
+use winit::window::Window;
 
 use crate::{
-    camera::{Camera, CameraController, CameraUniform},
-    mesh::{INDICES, VERTICES},
-    vertex::Vertex,
+    camera::CameraUniform,
+    graphics::{INDICES, VERTICES, Vertex},
 };
 
-pub struct State {
+pub struct Renderer {
     window: Arc<Window>,
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
@@ -20,18 +20,14 @@ pub struct State {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
-    camera: Camera,
-    camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
-    camera_controller: CameraController,
 }
 
-impl State {
-    pub async fn new(window: Arc<Window>) -> anyhow::Result<Self> {
+impl Renderer {
+    pub async fn new(window: Arc<Window>, camera_uniform: &CameraUniform) -> anyhow::Result<Self> {
         let size = window.inner_size();
 
-        // GPU context: instance, surface, adapter, device, queue, surface config
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: if cfg!(target_os = "windows") {
                 wgpu::Backends::DX12
@@ -87,27 +83,9 @@ impl State {
             color_space: wgpu::SurfaceColorSpace::Auto,
         };
 
-        // Init camera
-        let camera = Camera {
-            // position the camera 1 unit up and 2 units back
-            // +z is out of the screen
-            eye: (0.0, 1.0, 2.0).into(),
-            // have it look at the origin
-            target: (0.0, 0.0, 0.0).into(),
-            // which way is "up"
-            up: cgmath::Vector3::unit_y(),
-            aspect: config.width as f32 / config.height as f32,
-            fovy: 45.0,
-            znear: 0.1,
-            zfar: 100.0,
-        };
-
-        let mut camera_uniform = CameraUniform::new();
-        camera_uniform.update_view_proj(&camera);
-
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera Buffer"),
-            contents: bytemuck::cast_slice(&[camera_uniform]),
+            contents: bytemuck::cast_slice(&[*camera_uniform]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -135,10 +113,9 @@ impl State {
             label: Some("camera_bind_group"),
         });
 
-        // Pipeline: shader module, layout, render pipeline
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/shader.wgsl").into()),
         });
 
         let render_pipeline_layout =
@@ -186,7 +163,6 @@ impl State {
             cache: None,
         });
 
-        // Buffers: vertex buffer, index buffer
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(VERTICES),
@@ -199,36 +175,28 @@ impl State {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let num_indices = INDICES.len() as u32;
-
-        let camera_controller = CameraController::new(0.2);
-
         Ok(Self {
             window,
             surface,
             device,
             queue,
-            num_indices,
             config,
             is_surface_configured: false,
             render_pipeline,
-            index_buffer,
-            vertex_buffer,
-            camera_controller,
-            camera,
-            camera_uniform,
-            camera_buffer,
-            camera_bind_group,
             clear_color: wgpu::Color {
                 r: 0.0104,
                 g: 0.0104,
                 b: 0.0104,
                 a: 1.0,
             },
+            vertex_buffer,
+            index_buffer,
+            num_indices: INDICES.len() as u32,
+            camera_buffer,
+            camera_bind_group,
         })
     }
 
-    // Window/surface lifecycle
     pub fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 {
             self.config.width = width;
@@ -238,7 +206,14 @@ impl State {
         }
     }
 
-    // Per-frame rendering
+    pub fn update_camera_uniform(&self, camera_uniform: &CameraUniform) {
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[*camera_uniform]),
+        );
+    }
+
     pub fn render(&mut self) -> anyhow::Result<()> {
         self.window.request_redraw();
 
@@ -298,33 +273,5 @@ impl State {
         self.queue.present(output);
 
         Ok(())
-    }
-
-    // Per-frame state updates
-    pub fn update(&mut self) {
-        self.camera_controller.update_camera(&mut self.camera);
-        self.camera_uniform.update_view_proj(&self.camera);
-        self.queue.write_buffer(
-            &self.camera_buffer,
-            0,
-            bytemuck::cast_slice(&[self.camera_uniform]),
-        );
-    }
-
-    pub fn handle_key(&mut self, code: winit::keyboard::KeyCode, is_pressed: bool) -> bool {
-        self.camera_controller.handle_key(code, is_pressed)
-    }
-
-    // Input handling
-    pub fn handle_mouse_moved(&mut self, _position: PhysicalPosition<f64>) {
-        // let r = position.x / self.config.width as f64;
-        // let g = position.y / self.config.height as f64;
-
-        // self.clear_color = wgpu::Color {
-        //     r,
-        //     g,
-        //     b: 0.5,
-        //     a: 1.0,
-        // };
     }
 }
