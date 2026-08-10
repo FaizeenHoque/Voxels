@@ -1,9 +1,31 @@
 mod app;
 
 use std::sync::Arc;
+use wgpu::util::DeviceExt;
 use winit::{dpi::PhysicalPosition, window::Window};
 
 use crate::app::App;
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: [f32; 3],
+    color: [f32; 3],
+}
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [0.0, 0.5, 0.0],
+        color: [1.0, 0.0, 0.0],
+    },
+    Vertex {
+        position: [-0.5, -0.5, 0.0],
+        color: [0.0, 1.0, 0.0],
+    },
+    Vertex {
+        position: [0.5, -0.5, 0.0],
+        color: [0.0, 0.0, 1.0],
+    },
+];
 
 pub struct State {
     window: Arc<Window>,
@@ -13,7 +35,7 @@ pub struct State {
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
     render_pipeline: wgpu::RenderPipeline,
-
+    vertex_buffer: wgpu::Buffer,
     clear_color: wgpu::Color,
 }
 
@@ -133,6 +155,12 @@ impl State {
             cache: None,          // 6.
         });
 
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
         Ok(Self {
             window,
             surface,
@@ -141,6 +169,7 @@ impl State {
             config,
             is_surface_configured: false,
             render_pipeline,
+            vertex_buffer,
             clear_color: wgpu::Color {
                 r: 0.0104,
                 g: 0.0104,
